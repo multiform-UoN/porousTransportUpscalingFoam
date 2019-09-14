@@ -1,0 +1,99 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.3.0                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{
+
+
+    "U|UFinal"
+    {
+        solver               GAMG;
+        smoother  GaussSeidel;
+        tolerance           1e-10;
+        relTol               1e-3;
+    }
+
+
+    "psi.*"
+    {
+        solver           GAMG;
+        tolerance        1e-8;
+        relTol           0;
+        smoother  DILU;
+        minIter         0;
+        maxIter         1000;
+    }
+
+    "p|pFinal"
+    {
+        solver               GAMG;
+        smoother      GaussSeidel;
+        tolerance           1e-10;
+        relTol               1e-3;
+    }
+
+    "X"
+    {
+    //    type             coupled;
+        solver           GAMG;
+        tolerance        1e-13;
+        relTol           1e-8;
+        smoother      GaussSeidel;
+        minIter         0;
+        maxIter         200;
+    }
+
+}
+
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+    consistent true;
+    residualControl
+    {
+        U         1e-07;
+        p         1e-07;
+    }
+
+    pRefCell 0;
+    pRefValue 0;
+}
+
+cellProblem
+{
+    nNonOrthogonalCorrectors 1;
+    eigenvalueTol   1e-06;
+    eigenfunctionTol 1e-06;
+    cellProblemTol  1e-06;
+    maxPowerIterations 1000;
+    maxCellProblemIterations 1000;
+    Xref    (1.0 1.0 1.0);
+    setXref off;
+    XrefCell 100;
+}
+
+
+relaxationFactors
+{
+    equations
+    {
+        "X.*"     1;
+        "U.*"     0.7;
+        "phi.*"     1;
+    }
+}
+// ************************************************************************* //

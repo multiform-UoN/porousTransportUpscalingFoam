@@ -1,0 +1,4 @@
+#!/bin/bash
+
+wmake src/upscalingBCs
+wmake applications/solvers/transportUpscalingFoam

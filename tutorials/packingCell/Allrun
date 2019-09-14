@@ -1,0 +1,27 @@
+#!/bin/bash
+
+
+
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+. $WM_PROJECT_DIR/bin/tools/CleanFunctions
+
+cleanCase
+
+rm -r 0
+cp -r 0.init 0
+
+cd octave
+octave createSpheres.m
+cd ..
+runApplication blockMesh
+runApplication snappyHexMesh -overwrite
+runApplication createPatch -overwrite
+cp  0.init/* 0/.
+runApplication simpleFoam
+foamEndTime=$(foamListTimes | tail -1)
+if [ -d $foamEndTime ]; then
+   mkdir 0.end
+   mv $foamEndTime/U 0/.
+   rm -r $foamEndTime
+fi
+runApplication transportUpscalingFoam
