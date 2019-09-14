@@ -1,6 +1,8 @@
 # porousTransportUpscalingFoam
 OpenFOAM solver for the formal upscaling of transport with surface reactions in porous media.
 
+[![DOI](https://zenodo.org/badge/208470601.svg)](https://zenodo.org/badge/latestdoi/208470601)
+
 Requirements
 ------------
 
