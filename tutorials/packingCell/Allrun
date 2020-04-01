@@ -24,4 +24,4 @@ if [ -d $foamEndTime ]; then
    mv $foamEndTime/U 0/.
    rm -r $foamEndTime
 fi
-runApplication transportUpscalingFoam
+runApplication specCellFoam

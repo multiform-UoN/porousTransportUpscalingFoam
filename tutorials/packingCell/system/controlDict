@@ -15,7 +15,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     specCellFoam;
+application     upscalingTransportFoam;
 
 startFrom       firstTime;
 
@@ -47,6 +47,6 @@ runTimeModifiable true;
 
 libs
 (
-	"libUpscalingBCs.so"
+"libextraBCs.so"
 );
 // ************************************************************************* //

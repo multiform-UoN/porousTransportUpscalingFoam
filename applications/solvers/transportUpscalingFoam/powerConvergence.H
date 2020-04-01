@@ -11,10 +11,11 @@
             //    lambda.value() < scalar(1e-6)
             )
           &&
-           psiRes < eigenFunTol
-          &&
-            psiAdjRes < eigenFunTol
-        )
+            (
+             psiRes < eigenFunTol
+            &&
+              psiAdjRes < eigenFunTol
+        )   )
         ||
         (
             currPowerIter > maxPowerIter

@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2.3.0                                 |
+|  \\    /   O peration     | Version:  4.x                                   |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -9,25 +9,38 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    location    "constant";
-    object      transportProperties;
+    class       volScalarField;
+    location    "0";
+    object      psiAdj;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-transportModel Newtonian;
-#include "../octave/particleData.H"
-#include "DA.H"
 
+#include "../constant/DA.H"
+dimensions      [ 0 0 0 0 0 0 0 ];
 
-nu            nu [0 2 -1 0 0 0 0] 1000;
-D             DT [ 0 2 -1 0 0 0 0 ] #calc "$dp /$Pe";
+internalField   uniform 2.0;
 
-inverseDistancePotential
+boundaryField
 {
-    active	true;
-    potRefU     potRefU [0 1 -1 0 0 0 0] $val;
-    potMinD     potMinD [0 1 0 0 0 0 0] $dp;
-    potRefD     potRefD [0 1 0 0 0 0 0] $dp;
+    "solid.*"
+    {
+        type            $BC;
+        RobinD          uniform 1.0;
+        RobinK          uniform $Da;
+        RobinF          uniform 0;
+        value           uniform 0;
+
+    }
+    frontAndBack
+    {
+        type            empty;
+    }
+    ".*.cyc"
+    {
+        type            cyclic;
+    }
 
 }
+
+
 // ************************************************************************* //

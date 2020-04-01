@@ -1,4 +1,4 @@
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 . $WM_PROJECT_DIR/bin/tools/CleanFunctions
-rm log.specCellFoam
+rm log.upscalingTransportFoam
 runApplication transportUpscalingFoam

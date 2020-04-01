@@ -1,3 +1,4 @@
+scalar lambdaOld(lambda.value());
 {
     dimensionedScalar one("one",dimless/dimTime,1.);
     dimensionedScalar smallV
@@ -7,23 +8,59 @@
         small
     );
 
-    scalar lambdaOld = lambda.value();
 
-    //- The new Eigenvalues are calculated using the Rayleight quotient
-    //  such that lambda corresponds to the spectral radius of the ADE operator
-    lambda = lambda *
+    if(implicitRayleigh)
+    {
+        volScalarField LpsiAdj
         (
-            fvc::domainIntegrate(psi.prevIter()*psi)
-            /
-            ( fvc::domainIntegrate(psi*psi) + smallV)
+            psiAdjEqn.A()*psiAdj - psiAdjEqn.H()
         );
 
-    lambdaAdj = lambdaAdj *
+        volScalarField Lpsi(psiEqn.A()*psi - psiEqn.H());
+
+        dimensionedScalar resPsiEqn(fvc::domainIntegrate(mag(Lpsi))/vol);
+        dimensionedScalar resPsiAdjEqn(fvc::domainIntegrate(mag(LpsiAdj))/vol);
+
+        Info<< "Residual on psiEqn : "<< resPsiEqn.value() <<endl;
+        Info<< "Residual on psiAdjEqn : "<<resPsiAdjEqn.value() <<endl;
+
+        lambda =
         (
-            fvc::domainIntegrate(psiAdj.prevIter()*psiAdj)
+            fvc::domainIntegrate(Lpsi*psi)
             /
-            (fvc::domainIntegrate(psiAdj*psiAdj) + smallV)
+            fvc::domainIntegrate(psi*psi)
         );
+
+
+        lambdaAdj =
+        (
+            fvc::domainIntegrate(LpsiAdj*psiAdj)
+            /
+            fvc::domainIntegrate(psiAdj*psiAdj)
+        );
+
+    }
+    else
+    {
+        lambda =
+        (
+            lambda*fvc::domainIntegrate(psi.prevIter()*psi)
+            /
+            fvc::domainIntegrate(psi*psi)
+        );
+
+
+        lambdaAdj =
+        (
+            lambdaAdj*fvc::domainIntegrate(psiAdj.prevIter()*psiAdj)
+            /
+            fvc::domainIntegrate(psiAdj*psiAdj)
+        );
+
+    }
+
+    // //- Evaluate lambda as the average eigenvalue
+    // lambda = 0.9*lambda + 0.1* (lambda + lambdaAdj)/scalar(2.);
 
     //- Calculate new residual
     lambdaRes = mag(lambdaOld - lambda.value())/mag(lambdaOld);

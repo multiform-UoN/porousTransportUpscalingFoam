@@ -4,9 +4,14 @@
     (
         fvm::div(phi,psi)
       - fvm::laplacian(D, psi)
-      ==
-        lambda*psi
     );
 
     psiEqn.relax();
-    psiEqn.solve();
+    if(computeResolvent)
+    {
+        psiEqn.solve();
+    }
+    else
+    {
+        solve(psiEqn == lambda*psi.prevIter());
+    }

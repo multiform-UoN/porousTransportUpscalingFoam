@@ -30,12 +30,12 @@ solvers
 
     "psi.*"
     {
-        solver           GAMG;
+        solver           PBiCGStab;
         tolerance        1e-8;
         relTol           0;
-        smoother  DILU;
-        minIter         0;
-        maxIter         1000;
+        preconditioner   DILU;
+        minIter          0;
+        maxIter          50;
     }
 
     "p|pFinal"
@@ -49,41 +49,43 @@ solvers
     "X"
     {
     //    type             coupled;
-        solver           GAMG;
-        tolerance        1e-13;
-        relTol           1e-8;
-        smoother      GaussSeidel;
+        solver        PBiCGStab;
+        smoother        DILU;
+        tolerance        1e-10;
+        relTol           1e-10;
+        preconditioner   DILU;
         minIter         0;
-        maxIter         200;
+        maxIter        150;
     }
 
 }
 
 SIMPLE
 {
-    nNonOrthogonalCorrectors 0;
+    nNonOrthogonalCorrectors 1;
     consistent true;
     residualControl
     {
-        U         1e-07;
-        p         1e-07;
+        U         1e-5;
+        p         1e-5;
     }
 
     pRefCell 0;
     pRefValue 0;
 }
 
-cellProblem
+PowerControl
 {
-    nNonOrthogonalCorrectors 1;
-    eigenvalueTol   1e-06;
+    nNonOrthogonalCorrectors 3;
+    eigenvalueTol   1e-07;
     eigenfunctionTol 1e-06;
-    cellProblemTol  1e-06;
+    cellProblemTol  1e-5;
     maxPowerIterations 1000;
     maxCellProblemIterations 1000;
-    Xref    (1.0 1.0 1.0);
-    setXref off;
-    XrefCell 100;
+    AitkenAccelerationPower    off;
+    AitkenAccelerationCorr     on;
+    implicitRayleigh true;
+    residualsOnEffectiveDispersion false;
 }
 
 
@@ -91,9 +93,8 @@ relaxationFactors
 {
     equations
     {
-        "X.*"     1;
+        "X.*"     0.95;
         "U.*"     0.7;
-        "phi.*"     1;
     }
 }
 // ************************************************************************* //

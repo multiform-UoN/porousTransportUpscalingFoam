@@ -22,21 +22,24 @@ ddtSchemes
 
 gradSchemes
 {
-    default         leastSquares;
+    default         cellLimited leastSquares 1;
 }
 
 divSchemes
 {
-    default         Gauss linear;
-    div(phi,psi)      Gauss linear;
-    div(-phi,psiAdj)      Gauss linear;
-    div(phiplus,X)      Gauss linear;
+    default                   Gauss linear;
+    div(phi,U)          	  bounded Gauss linearUpwindV grad(U);
+    div(phi,psi)        	  bounded Gauss vanLeer;
+    div(phiAdj,psiAdj)  	  bounded Gauss vanLeer;
+    div(phistar,X)      	  bounded Gauss vanLeer;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+
 }
 
 laplacianSchemes
 {
-    default        Gauss linear corrected;
-    laplacian(D,psi) Gauss linear corrected;
+    default            Gauss linear corrected;
+    laplacian(D,psi)   Gauss linear corrected;
 }
 
 interpolationSchemes
@@ -54,5 +57,8 @@ fluxRequired
     default         no;
 }
 
-
+wallDist
+{
+    method   meshWave;
+}
 // ************************************************************************* //

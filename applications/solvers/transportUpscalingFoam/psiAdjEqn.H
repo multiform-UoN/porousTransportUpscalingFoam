@@ -1,12 +1,19 @@
 
     //- Equation for the adjoint eigenfunction psi
-    fvScalarMatrix psiEqnAdj
+    fvScalarMatrix psiAdjEqn
     (
-        fvm::div(phi,psiAdj)
-      + fvm::laplacian(D, psiAdj)
-      ==
-      - lambdaAdj*psiAdj
+        fvm::div(phiAdj,psiAdj)
+      - fvm::laplacian(D, psiAdj)
+      - fvm::Sp(fvc::div(phiAdj),psiAdj)
+
     );
 
-    psiEqnAdj.relax();
-    psiEqnAdj.solve();
+    psiAdjEqn.relax();
+    if(computeResolvent)
+    {
+        psiAdjEqn.solve();
+    }
+    else
+    {
+        solve(psiAdjEqn == lambdaAdj*psiAdj.prevIter());
+    }

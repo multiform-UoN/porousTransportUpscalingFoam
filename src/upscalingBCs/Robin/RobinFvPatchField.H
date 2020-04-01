@@ -2,11 +2,11 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
-     \\/     M anipulation  |
+    \\  /    A nd           | Copyright (C) 2015-2019
+     \\/     M anipulation  | Matteo Icardi, Federico Municchi
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is derivative work of OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+
 
 Class
     Foam::RobinFvPatchField
@@ -61,9 +63,9 @@ SourceFiles
 #ifndef RobinFvPatchField_H
 #define RobinFvPatchField_H
 
-#include "volFieldsFwd.H"
+//#include "volFieldsFwd.H"
 #include "fvPatchField.H"
-#include "dimensionedTensor.H"
+//#include "dimensionedTensor.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -83,25 +85,12 @@ class RobinFvPatchField
 
         //- Diffusion field
         scalarField RobinD_;
-        scalarField RobinD2_;
 
         //- Reaction field
         scalarField RobinK_;
-        scalarField RobinK2_;
 
         //- Source term
         Field<Type> RobinF_;
-        Field<Type> RobinF2_;
-
-        // - Diffusion field
-        const word dt_;
-
-        //- Additional Drift whose normal component adds up to F
-        const word drift_;
-
-        //- Additional Source term field
-        const word FField_;
-
 
 public:
 
@@ -132,7 +121,8 @@ public:
             const RobinFvPatchField<Type>&,
             const fvPatch&,
             const DimensionedField<Type, volMesh>&,
-            const fvPatchFieldMapper&
+            const fvPatchFieldMapper&,
+            const bool mappingRequired=true
         );
 
         //- Construct as copy
@@ -220,6 +210,38 @@ public:
             {
                 return RobinF_;
             }
+
+        // Setting fields
+
+            virtual void RobinD(scalarField f)
+            {
+                RobinD_ = f;
+            }
+
+            // virtual const scalarField& RobinD() const
+            // {
+            //     return RobinD_;
+            // }
+            //
+            // virtual scalarField& RobinK()
+            // {
+            //     return RobinK_;
+            // }
+            //
+            // virtual const scalarField& RobinK() const
+            // {
+            //     return RobinK_;
+            // }
+            //
+            // virtual Field<Type>& RobinF()
+            // {
+            //     return RobinF_;
+            // }
+            //
+            // virtual const Field<Type>& RobinF() const
+            // {
+            //     return RobinF_;
+            // }
 
 
         // Mapping functions

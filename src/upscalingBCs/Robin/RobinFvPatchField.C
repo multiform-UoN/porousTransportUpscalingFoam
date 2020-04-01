@@ -2,11 +2,11 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
-     \\/     M anipulation  |
+    \\  /    A nd           | Copyright (C) 2015-2019
+     \\/     M anipulation  | Matteo Icardi, Federico Municchi
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is derivative work of OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
 
 \*---------------------------------------------------------------------------*/
 
@@ -37,10 +38,7 @@ Foam::RobinFvPatchField<Type>::RobinFvPatchField
     fvPatchField<Type>(p, iF),
     RobinD_(p.size()),
     RobinK_(p.size()),
-    RobinF_(p.size()),
-    dt_("DT"),
-    drift_("none"),
-    FField_("none")
+    RobinF_(p.size())
 {
 }
 
@@ -54,14 +52,36 @@ Foam::RobinFvPatchField<Type>::RobinFvPatchField
 )
 :
     fvPatchField<Type>(p, iF, dict),
-    RobinD_("RobinD", dict, p.size()),
-    RobinK_("RobinK", dict, p.size()),
-    RobinF_("RobinF", dict, p.size()),
-    dt_(dict.lookupOrDefault<word>("dt","none")),
-    drift_(dict.lookupOrDefault<word>("drift","none")),
-    FField_(dict.lookupOrDefault<word>("FField","none"))
+    RobinD_(p.size()),
+    RobinK_(p.size()),
+    RobinF_(p.size())
 {
-    evaluate();
+  if (dict.found("RobinD"))
+  {
+    RobinD_ = scalarField("RobinD",dict,p.size());
+  }
+  else
+  {
+    RobinD_ = scalarField(p.size(),1.0);
+  }
+  if (dict.found("RobinK"))
+  {
+    RobinK_ = scalarField("RobinK",dict,p.size());
+  }
+  else
+  {
+    RobinK_ = scalarField(p.size(),0.0);
+  }
+  if (dict.found("RobinF"))
+  {
+    RobinF_ = Field<Type>("RobinF",dict,p.size());
+  }
+  else
+  {
+    RobinF_ = Field<Type>(p.size(),pTraits<Type>::zero);
+  }
+//    updateCoeffs();
+//    evaluate();
 }
 
 
@@ -71,18 +91,16 @@ Foam::RobinFvPatchField<Type>::RobinFvPatchField
     const RobinFvPatchField<Type>& ptf,
     const fvPatch& p,
     const DimensionedField<Type, volMesh>& iF,
-    const fvPatchFieldMapper& mapper
+    const fvPatchFieldMapper& mapper,
+    const bool mappingRequired
 )
 :
-    fvPatchField<Type>(ptf, p, iF, mapper),
-    RobinD_(ptf.RobinD_, mapper),
-    RobinK_(ptf.RobinK_, mapper),
-    RobinF_(ptf.RobinF_, mapper),
-    dt_(ptf.dt_),
-    drift_(ptf.drift_),
-    FField_(ptf.FField_)
+    fvPatchField<Type>(ptf, p, iF, mapper, mappingRequired),
+    RobinD_(mapper(ptf.RobinD_)),
+    RobinK_(mapper(ptf.RobinK_)),
+    RobinF_(mapper(ptf.RobinF_))
 {
-    if (notNull(iF) && mapper.hasUnmapped())
+    if (mappingRequired && notNull(iF) && mapper.hasUnmapped())
     {
         WarningInFunction
             << "On field " << iF.name() << " patch " << p.name()
@@ -103,10 +121,7 @@ Foam::RobinFvPatchField<Type>::RobinFvPatchField
     fvPatchField<Type>(ptf),
     RobinD_(ptf.RobinD_),
     RobinK_(ptf.RobinK_),
-    RobinF_(ptf.RobinF_),
-    dt_(ptf.dt_),
-    drift_(ptf.drift_),
-    FField_(ptf.FField_)
+    RobinF_(ptf.RobinF_)
 {}
 
 
@@ -120,10 +135,7 @@ Foam::RobinFvPatchField<Type>::RobinFvPatchField
     fvPatchField<Type>(ptf, iF),
     RobinD_(ptf.RobinD_),
     RobinK_(ptf.RobinK_),
-    RobinF_(ptf.RobinF_),
-    dt_(ptf.dt_),
-    drift_(ptf.drift_),
-    FField_(ptf.FField_)
+    RobinF_(ptf.RobinF_)
 {}
 
 
@@ -136,10 +148,9 @@ void Foam::RobinFvPatchField<Type>::autoMap
 )
 {
     fvPatchField<Type>::autoMap(m);
-    RobinD_.autoMap(m);
-    RobinK_.autoMap(m);
-    RobinF_.autoMap(m);
-    //drift_.autoMap(m);
+    m(RobinD_,RobinD_);//.autoMap(m);
+    m(RobinK_,RobinK_);//RobinK_.autoMap(m);
+    m(RobinF_,RobinF_);//.autoMap(m);
 }
 
 
@@ -158,13 +169,12 @@ void Foam::RobinFvPatchField<Type>::rmap
     RobinD_.rmap(mptf.RobinD_, addr);
     RobinK_.rmap(mptf.RobinK_, addr);
     RobinF_.rmap(mptf.RobinF_, addr);
-    //drift_.rmap(mptf.drift_, addr);
 }
-
 
 template<class Type>
 void Foam::RobinFvPatchField<Type>::evaluate(const Pstream::commsTypes)
 {
+
     if (!this->updated())
     {
         this->updateCoeffs();
@@ -173,13 +183,13 @@ void Foam::RobinFvPatchField<Type>::evaluate(const Pstream::commsTypes)
     Field<Type>::operator=
     (
         (
-          this->patchInternalField() * RobinD2_ * this->patch().deltaCoeffs()
-          + RobinF2_
+          this->patchInternalField() * RobinD() * this->patch().deltaCoeffs()
+          + RobinF()
         )
         /
         (
-           RobinD2_ * this->patch().deltaCoeffs()
-          - RobinK2_
+           RobinD() * this->patch().deltaCoeffs()
+          - RobinK()
         )
     );
 
@@ -193,13 +203,13 @@ Foam::RobinFvPatchField<Type>::snGrad() const
 {
     return
         (
-          RobinK2_ * this->patchInternalField()
-          + RobinF2_
+          RobinK() * this->patchInternalField()
+          + RobinF()
         ) * this->patch().deltaCoeffs()
         /
         (
-          RobinD2_ * this->patch().deltaCoeffs()
-         - RobinK2_
+          RobinD() * this->patch().deltaCoeffs()
+         - RobinK()
         );
 }
 
@@ -212,7 +222,12 @@ Foam::RobinFvPatchField<Type>::valueInternalCoeffs
 ) const
 {
     return Type(pTraits<Type>::one) *
-    ( 1.0 + RobinK2_/(RobinD2_*this->patch().deltaCoeffs() - RobinK2_) );
+    (
+        RobinD() * this->patch().deltaCoeffs() )
+        /
+        (
+            RobinD()*this->patch().deltaCoeffs() - RobinK()
+        );
 
 }
 
@@ -226,10 +241,10 @@ Foam::RobinFvPatchField<Type>::valueBoundaryCoeffs
 {
     return
          (
-           RobinF2_         /
+           RobinF()         /
            (
-            RobinD2_ * this->patch().deltaCoeffs()
-           - RobinK2_
+            RobinD() * this->patch().deltaCoeffs()
+           - RobinK()
            )
          );
 }
@@ -241,11 +256,11 @@ Foam::RobinFvPatchField<Type>::gradientInternalCoeffs() const
 {
     return Type(pTraits<Type>::one) *
     (
-      RobinK2_*this->patch().deltaCoeffs()
+      RobinK()*this->patch().deltaCoeffs()
       /
       (
-        RobinD2_ * this->patch().deltaCoeffs()
-       - RobinK2_
+        RobinD() * this->patch().deltaCoeffs()
+       - RobinK()
       )
     );
 }
@@ -257,11 +272,11 @@ Foam::RobinFvPatchField<Type>::gradientBoundaryCoeffs() const
 {
     return
        (
-         RobinF2_ * this->patch().deltaCoeffs()
+         RobinF()* this->patch().deltaCoeffs()
          /
          (
-          RobinD2_ * this->patch().deltaCoeffs()
-         - RobinK2_
+          RobinD() * this->patch().deltaCoeffs()
+         - RobinK()
          )
        );
 }
@@ -271,13 +286,10 @@ template<class Type>
 void Foam::RobinFvPatchField<Type>::write(Ostream& os) const
 {
     fvPatchField<Type>::write(os);
-    RobinD_.writeEntry("RobinD", os);
-    RobinK_.writeEntry("RobinK", os);
-    RobinF_.writeEntry("RobinF", os);
-    os.writeKeyword("drift") << drift_ << token::END_STATEMENT << nl;
-    os.writeKeyword("FField") << FField_ << token::END_STATEMENT << nl;
-    os.writeKeyword("dt") << dt_ << token::END_STATEMENT << nl;
-    this->writeEntry("value", os);
+    writeEntry(os,"RobinD",RobinD_);//RobinD_.writeEntry("RobinD", os);
+    writeEntry(os,"RobinK",RobinK_);//RobinK_.writeEntry("RobinK", os);
+    writeEntry(os,"RobinF",RobinF_);//RobinF_.writeEntry("RobinF", os);
+    writeEntry(os,"value",*this);//this->writeEntry("value", os);
 }
 
 
@@ -285,56 +297,10 @@ void Foam::RobinFvPatchField<Type>::write(Ostream& os) const
 template<class Type>
 void Foam::RobinFvPatchField<Type>::updateCoeffs()
  {
+
      if (this->updated())
      {
          return;
-     }
-
-     //const IOdictionary& transportProperties = this->db().template lookupObject<IOdictionary>("transportProperties");
-     //const dimensionedScalar DT(transportProperties.lookup("DT"));
-//        const GeometricField<Type, fvsPatchField, surfaceMesh> gradT(fvc::snGrad(
-//            this->db().template
-//            lookupObject<GeometricField<Type, fvPatchField, volMesh> >(fieldName_)));
-     if (dt_ != "none")
-     {
-        const IOdictionary& transportProperties = this->db().template lookupObject<IOdictionary>("transportProperties");
-        const dimensionedTensor DT(transportProperties.lookup("DT"));
-        const tensorField DTF(RobinD_.size(), DT.value());
-        //const dimensionedTensor& DT
-       // (
-       //  this->db().template lookupObject<dimensionedScalar>(dt_)
-       // );
-      RobinD2_ = ((DTF & this->patch().nf()) & this->patch().nf()) + RobinD_;
-     }
-     else
-     {
-       RobinD2_ = RobinD_;
-     }
-
-     if (drift_ != "none")
-     {
-       const fvPatchVectorField& Up
-        (
-         this->patch().template lookupPatchField<volVectorField, vector>(drift_)
-        );
-        RobinK2_ = RobinK_ + (Up & this->patch().nf());
-     }
-     else
-     {
-       RobinK2_ = RobinK_;
-     }
-
-     if (FField_ != "none")
-     {
-       const fvPatchField<Type>& FF
-        (
-         this->patch().template lookupPatchField<GeometricField<Type, fvPatchField, volMesh>, Type>(FField_)
-        );
-        RobinF2_ = RobinF_ + FF;
-     }
-     else
-     {
-       RobinF2_ = RobinF_;
      }
 
      fvPatchField<Type>::updateCoeffs();

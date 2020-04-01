@@ -10,6 +10,7 @@
     );
 
     psi.correctBoundaryConditions();
+    
     volScalarField psiFieldRes
     (
         mag(psi

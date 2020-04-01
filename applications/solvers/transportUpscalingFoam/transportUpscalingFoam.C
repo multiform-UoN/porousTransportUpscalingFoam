@@ -2,11 +2,11 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
-     \\/     M anipulation  |
+    \\  /    A nd           | Copyright (C) 2015-2019
+     \\/     M anipulation  | Matteo Icardi, Federico Municchi
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is derivative work of OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
 
 Application
     specCellFoam
@@ -35,7 +36,8 @@ Developers
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "fvOptions.H"
+#include "wallDist.H"
+#include "simpleControl.H"
 
 
 int main(int argc, char *argv[]) {
@@ -57,21 +59,28 @@ int main(int argc, char *argv[]) {
 
     //- Power iterations (i.e., spectral problem)
     Info << "Power iterations for the spectral problem" << endl;
-    do {
+    do
+    {
 
         #include "powerIterSettings.H"
 
-        for (label corr(0);corr<nNonOrthCorr;corr++) {
+        while(pwrctrl.correctNonOrthogonal())
+        {
 
             #include    "psiEqn.H"
             #include    "psiAdjEqn.H"
 
+            if(pwrctrl.finalNonOrthogonalIter())
+            {
+
+                #include    "updateEigenvalue.H"
+                #include    "normalisePsi.H"
+                #include    "normalisePsiPsiAdj.H"
+                #include    "aitkenRelaxEigenfunctions.H"
+                #include    "powerConvergence.H"
+            }
         }
 
-        #include    "updateEigenvalue.H"
-        #include    "normalisePsi.H"
-        #include    "normalisePsiPsiAdj.H"
-        #include    "powerConvergence.H"
     } while (
         !powerConverged
     );
@@ -80,7 +89,7 @@ int main(int argc, char *argv[]) {
 
     //- Calculate modified velocity and beta
     #include    "calculateBeta.H"
-    #include    "calculateUplus.H"
+    #include    "calculateUstar.H"
 
     //- Solve corrector problem
     Info << "Solving for scalar transport corrector field" << endl;
@@ -88,11 +97,13 @@ int main(int argc, char *argv[]) {
 
         #include    "cellIterSettings.H"
 
-        for (label corr(0);corr<nNonOrthCorr;corr++) {
-
+        while(pwrctrl.correctNonOrthogonal())
+        {
             #include    "XEqn.H"
         }
 
+        #include "rescaleX.H"
+        #include "aitkenRelaxation.H"
         #include "cellConvergence.H"
 
     } while (

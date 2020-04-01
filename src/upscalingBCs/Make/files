@@ -1,4 +1,5 @@
 Robin/RobinFvPatchFields.C
 fullFixedGradient/fullFixedGradientFvPatchFields.C
+RobinPhi/RobinPhiFvPatchScalarField.C
 
 LIB = $(FOAM_USER_LIBBIN)/libUpscalingBCs

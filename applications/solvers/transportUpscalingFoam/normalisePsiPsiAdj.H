@@ -1,14 +1,12 @@
 {
-    //- Normalisation and magnitude to avoid oscillating Eigenfunctions
-    //  using Neumann boundary conditions
-    psiAdj = mag
-    (   psiAdj
-        *(
-            vol
-            /
-            fvc::domainIntegrate(mag(psiAdj)+small)
-        )
+
+    psiAdj *=
+    (
+        vol
+        /
+        fvc::domainIntegrate(mag(psiAdj)+small)
     );
+   
 
     psiAdj.correctBoundaryConditions();
 

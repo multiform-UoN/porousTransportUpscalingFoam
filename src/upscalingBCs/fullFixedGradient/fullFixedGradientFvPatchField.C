@@ -2,11 +2,11 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
-     \\/     M anipulation  |
+    \\  /    A nd           | Copyright (C) 2015-2019
+     \\/     M anipulation  | Matteo Icardi, Federico Municchi
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is derivative work of OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ License
 
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
 
 \*---------------------------------------------------------------------------*/
 
@@ -49,7 +50,7 @@ Foam::fullFixedGradientFvPatchField<Type>::fullFixedGradientFvPatchField
     const dictionary& dict
 )
 :
-    fvPatchField<Type>(p, iF, dict),
+    fvPatchField<Type>(p, iF, dict, false),
     gradient_(p.size(),dict.lookup("gradient")),
     gradnorm_(gradient_&this->patch().Sf() / this->patch().magSf())
 {
@@ -63,14 +64,15 @@ Foam::fullFixedGradientFvPatchField<Type>::fullFixedGradientFvPatchField
     const fullFixedGradientFvPatchField<Type>& ptf,
     const fvPatch& p,
     const DimensionedField<Type, volMesh>& iF,
-    const fvPatchFieldMapper& mapper
+    const fvPatchFieldMapper& mapper,
+    const bool mappingRequired
 )
 :
-    fvPatchField<Type>(ptf, p, iF, mapper),
-    gradient_(ptf.gradient_, mapper),
+    fvPatchField<Type>(ptf, p, iF, mapper, mappingRequired),
+    gradient_(mapper(ptf.gradient_)),
     gradnorm_(gradient_&this->patch().Sf() / this->patch().magSf())
 {
-    if (notNull(iF) && mapper.hasUnmapped())
+    if (mappingRequired && notNull(iF) && mapper.hasUnmapped())
     {
         WarningInFunction
             << "On field " << iF.name() << " patch " << p.name()
@@ -116,7 +118,7 @@ void Foam::fullFixedGradientFvPatchField<Type>::autoMap
 )
 {
     fvPatchField<Type>::autoMap(m);
-    gradient_.autoMap(m);
+    m(gradient_,gradient_);
 }
 
 
@@ -200,7 +202,7 @@ template<class Type>
 void Foam::fullFixedGradientFvPatchField<Type>::write(Ostream& os) const
 {
     fvPatchField<Type>::write(os);
-    gradient_.writeEntry("gradient", os);
+    writeEntry(os,"gradient", gradient_);
 }
 
 

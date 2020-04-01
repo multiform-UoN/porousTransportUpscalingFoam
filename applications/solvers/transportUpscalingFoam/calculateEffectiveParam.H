@@ -4,11 +4,9 @@ dimensionedTensor Deff
     "Deff",
     fvc::domainIntegrate
     (
-        beta
-        *(
-             D*(tensor::I + fvc::grad(X))
-             + ( (Ueff-Uplus)*X )
-         )
+        D*beta*(tensor::I + fvc::grad(X))
+        +  ((beta*Ueff-Ustar)*X)
+
     ) / vol
 );
 
@@ -16,7 +14,7 @@ dimensionedTensor Deff
 dimensionedVector CI
 (
     "CI",
-    fvc::domainIntegrate(beta*X) / vol
+    fvc::domainIntegrate(psi*X) / vol
 );
 
 //- Calculate alternative diffusion coefficient
