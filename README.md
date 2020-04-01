@@ -6,7 +6,7 @@ OpenFOAM solver for the formal upscaling of transport with surface reactions in 
 Requirements
 ------------
 
-_OpenFOAM-6_ and __Matlab_.
+_OpenFOAM-7_ and __Matlab_.
 
 Usage
 -----
